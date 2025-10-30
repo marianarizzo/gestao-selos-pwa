@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gestão de Selos - CDD Brasília</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0B1A24">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="bg-gradient"></div>
+  <header class="app-header">
+    <div class="brand">
+      <img src="assets/logo-cdd-brasilia.png" alt="CDD Brasília" class="brand-logo">
+      <div class="brand-text">
+        <h1>Gestão de Selos</h1>
+        <p>CDD Brasília</p>
+      </div>
+    </div>
+    <div class="user-area">
+      <span id="hello">—</span>
+      <button id="btnSair" class="btn ghost small" hidden>Sair</button>
+    </div>
+  </header>
+
+  <nav class="topnav">
+    <button class="tab-btn" data-tab="login" id="btnLoginTab">Login</button>
+    <button class="tab-btn" data-tab="bloqueio">Bloqueio</button>
+    <button class="tab-btn" data-tab="tratativa">Tratativa</button>
+    <button class="tab-btn" data-tab="finalizacao">Finalização</button>
+    <button class="tab-btn admin-only" data-tab="dashboard" id="btnDashboard" hidden>Painel</button>
+  </nav>
+
+  <main>
+    <!-- LOGIN -->
+    <section id="login" class="tab active">
+      <div class="card login-card">
+        <h2>Entrar</h2>
+        <p class="subtle">Qualquer colaborador pode entrar sem senha para cadastrar selos.<br>Para acessar o Painel, use a senha de administração.</p>
+        <form id="form-login" class="grid mini">
+          <label>Seu nome
+            <input name="nome" placeholder="Ex.: Mariana" required>
+          </label>
+          <label>Senha de administrador (opcional)
+            <input name="senha" type="password" placeholder="Deixe em branco para modo colaborador">
+          </label>
+          <div class="actions">
+            <button type="submit" class="btn">Entrar</button>
+            <button type="button" id="btnLimparDados" class="btn ghost">Limpar dados locais</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- BLOQUEIO -->
+    <section id="bloqueio" class="tab">
+      <div class="card">
+        <h2>Bloqueio (Selo Vermelho)</h2>
+        <form id="form-bloqueio" class="grid">
+          <label>Nome<input name="nome" required></label>
+          <label>Número do Selo<input name="numero" type="number" min="1" required></label>
+          <label>Área de identificação
+            <select name="area" required>
+              <option value="">Selecione</option>
+              <option>Retrabalho</option><option>Empurrada</option>
+              <option>Estoque 1</option><option>Estoque 2</option><option>Estoque 3</option>
+              <option>Estoque 4</option><option>Estoque 5</option><option>Picking</option>
+            </select>
+          </label>
+          <label>Código Promax do Produto<input name="promax" required></label>
+          <label>Problema
+            <select name="problema" required>
+              <option value="">Selecione</option>
+              <option>microfuro</option><option>avaria</option><option>pallet quebrado</option>
+              <option>produto faltando</option><option>vazamento</option><option>bloqueio de idade</option>
+            </select>
+          </label>
+          <label>Quantidade de Pallets<input name="qtd" type="number" min="1" required></label>
+          <label>Data de Bloqueio<input name="dataBloqueio" type="date" required></label>
+          <label>Data de vencimento<input name="vencimento" type="date"></label>
+          <label class="full">Observações<textarea name="obs" rows="3" placeholder="Detalhes..."></textarea></label>
+          <div class="actions">
+            <button type="submit" class="btn">Salvar Bloqueio</button>
+            <button type="button" id="exportar" class="btn ghost">Exportar Dados (JSON)</button>
+            <input type="file" id="importar" accept="application/json" style="display:none">
+            <button type="button" id="importarBtn" class="btn ghost">Importar Dados (JSON)</button>
+          </div>
+        </form>
+      </div>
+      <div class="card">
+        <h3>Selos Vermelhos Cadastrados</h3>
+        <div class="table-wrap">
+          <table id="tabela-bloqueios">
+            <thead><tr><th>#</th><th>Nome</th><th>Nº</th><th>Área</th><th>Promax</th><th>Problema</th><th>Pallets</th><th>Bloqueio</th><th>Vencimento</th><th>Obs</th><th>Ações</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TRATATIVA -->
+    <section id="tratativa" class="tab">
+      <div class="card">
+        <h2>Tratativa</h2>
+        <form id="form-tratativa" class="grid">
+          <label>Nome<input name="nome" required></label>
+          <label>Número do Selo (Vermelho)<input name="numero" type="number" min="1" required></label>
+          <label>Data de Liberação<input name="dataLiberacao" type="date" required></label>
+          <label>Cor do Selo
+            <select name="cor" required>
+              <option value="">Selecione</option>
+              <option>Verde</option><option>Amarelo</option>
+            </select>
+          </label>
+          <div class="actions"><button type="submit" class="btn">Salvar Tratativa</button></div>
+        </form>
+        <p class="hint">
+          Regra: se <b>Tratativa = Verde</b> ⇒ associado ao Vermelho foi <b>Amarelo</b> ⇒ <b>Impróprio/PNC</b>.<br>
+          Se <b>Tratativa = Amarelo</b> ⇒ associado ao Vermelho foi <b>Verde</b> ⇒ <b>Liberado</b>.
+        </p>
+      </div>
+      <div class="card">
+        <h3>Tratativas</h3>
+        <div class="table-wrap">
+          <table id="tabela-tratativas">
+            <thead><tr><th>#</th><th>Nome</th><th>Nº</th><th>Data</th><th>Cor</th><th>Status</th><th>Ações</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- FINALIZAÇÃO -->
+    <section id="finalizacao" class="tab">
+      <div class="card">
+        <h2>Finalização</h2>
+        <form id="form-finalizacao" class="grid">
+          <label>Nome<input name="nome" required></label>
+          <label>Número do Selo (Vermelho)<input name="numero" type="number" min="1" required></label>
+          <label>Data de Finalização<input name="dataFinalizacao" type="date" required></label>
+          <label>Cor do Selo
+            <select name="cor" required>
+              <option value="">Selecione</option>
+              <option>Verde</option><option>Amarelo</option>
+            </select>
+          </label>
+          <div class="actions"><button type="submit" class="btn">Salvar Finalização</button></div>
+        </form>
+      </div>
+      <div class="card">
+        <h3>Finalizações</h3>
+        <div class="table-wrap">
+          <table id="tabela-finalizacoes">
+            <thead><tr><th>#</th><th>Nome</th><th>Nº</th><th>Data</th><th>Cor</th><th>Ações</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- DASHBOARD -->
+    <section id="dashboard" class="tab">
+      <div class="card">
+        <h2>Painel</h2>
+        <div id="cards" class="cards"></div>
+      </div>
+      <div class="card">
+        <h3>Status por Selo</h3>
+        <div class="table-wrap">
+          <table id="tabela-status">
+            <thead><tr><th>Nº Selo Vermelho</th><th>Bloqueio</th><th>Status Atual</th><th>Última Tratativa</th><th>Finalizado?</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <small>Gestão de Selos • PWA • CDD Brasília</small>
+  </footer>
+
+  <script src="app.js"></script>
+  <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(console.error));}</script>
+</body>
+</html>
