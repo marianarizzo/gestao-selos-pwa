@@ -1,7 +1,7 @@
 {
   "name": "Gestão de Selos - CDD Brasília",
   "short_name": "Selos Brasília",
-  "start_url": "/index.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#071018",
   "theme_color": "#0B1A24",
