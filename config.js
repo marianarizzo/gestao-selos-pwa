@@ -1,4 +1,4 @@
-// config.js — Firebase do projeto
+// config.js — Firebase do projeto (já com as suas chaves)
 window.firebaseConfig = {
   apiKey: "AIzaSyDs6GEnliNHYlnQKeuXS3hTWlKHDxGfhFo",
   authDomain: "gestao-de-selos.firebaseapp.com",

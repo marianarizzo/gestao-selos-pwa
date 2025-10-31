@@ -1,6 +1,5 @@
-// v8 — núcleo necessário para login/abas + backend Local/Firebase
+// v9 — app completo
 const ADMIN_PASSWORD = 'adminselos';
-const DEV_PASSWORD = 'devselos'; // não usado para dev; dev é fixa (Mariana Rizzo/adm123)
 
 const tabs = document.querySelectorAll('.tab');
 const buttons = document.querySelectorAll('.tab-btn');
@@ -11,15 +10,12 @@ const btnIndicadores = document.getElementById('btnIndicadores');
 const btnDev = document.getElementById('btnDev');
 const btnEmails = document.getElementById('btnEmails');
 const btnSair = document.getElementById('btnSair');
-const syncMode = document.getElementById('syncMode'); // pode não existir; código trata
 
+// Firebase?
 const useFirebase = !!window.firebaseConfig && !!window.firebase;
 if(useFirebase){
   firebase.initializeApp(window.firebaseConfig);
   var db = firebase.firestore();
-  syncMode && (syncMode.textContent = 'Modo: Nuvem (Firebase)');
-}else{
-  syncMode && (syncMode.textContent = 'Modo: Local');
 }
 
 const localDefault = '{"bloqueios":[],"tratativas":[],"finalizacoes":[],"pessoas":["Mariana"],"emails":[{"email":"admin@example.com","tipo":"admin"}]}';
@@ -30,7 +26,7 @@ const backend = {
       const snap = await db.collection(coll).get();
       return snap.docs.map(d=>({id:d.id, ...d.data()}));
     } else {
-      const data = JSON.parse(localStorage.getItem('gestao_selos_v8') || localDefault);
+      const data = JSON.parse(localStorage.getItem('gestao_selos_v9') || localDefault);
       return data[coll]||[];
     }
   },
@@ -39,17 +35,17 @@ const backend = {
       const ref = await db.collection(coll).add(obj);
       return {id: ref.id, ...obj};
     } else {
-      const data = JSON.parse(localStorage.getItem('gestao_selos_v8') || localDefault);
+      const data = JSON.parse(localStorage.getItem('gestao_selos_v9') || localDefault);
       (data[coll]=data[coll]||[]).push({...obj, id: (Math.random().toString(36).slice(2))});
-      localStorage.setItem('gestao_selos_v8', JSON.stringify(data));
+      localStorage.setItem('gestao_selos_v9', JSON.stringify(data));
     }
   },
   async del(coll, id){
     if(useFirebase){ await db.collection(coll).doc(id).delete(); }
     else{
-      const data = JSON.parse(localStorage.getItem('gestao_selos_v8') || localDefault);
+      const data = JSON.parse(localStorage.getItem('gestao_selos_v9') || localDefault);
       data[coll] = (data[coll]||[]).filter(x=>x.id!==id);
-      localStorage.setItem('gestao_selos_v8', JSON.stringify(data));
+      localStorage.setItem('gestao_selos_v9', JSON.stringify(data));
     }
   },
   async delByNumero(n){
@@ -59,17 +55,17 @@ const backend = {
         for(const d of qs.docs){ await d.ref.delete(); }
       }
     }else{
-      const data = JSON.parse(localStorage.getItem('gestao_selos_v8') || localDefault);
+      const data = JSON.parse(localStorage.getItem('gestao_selos_v9') || localDefault);
       ['bloqueios','tratativas','finalizacoes'].forEach(c=> data[c]=(data[c]||[]).filter(x=>Number(x.numero)!==Number(n)));
-      localStorage.setItem('gestao_selos_v8', JSON.stringify(data));
+      localStorage.setItem('gestao_selos_v9', JSON.stringify(data));
     }
   },
   async addPessoa(nome){
     if(useFirebase){ await db.collection('pessoas').add({nome}); }
     else{
-      const data = JSON.parse(localStorage.getItem('gestao_selos_v8') || localDefault);
+      const data = JSON.parse(localStorage.getItem('gestao_selos_v9') || localDefault);
       if(!data.pessoas.includes(nome)) data.pessoas.push(nome);
-      localStorage.setItem('gestao_selos_v8', JSON.stringify(data));
+      localStorage.setItem('gestao_selos_v9', JSON.stringify(data));
     }
   },
   async delPessoaByIndex(i){
@@ -78,21 +74,21 @@ const backend = {
       const arr = snap.docs;
       if(arr[i]) await arr[i].ref.delete();
     }else{
-      const data = JSON.parse(localStorage.getItem('gestao_selos_v8') || localDefault);
+      const data = JSON.parse(localStorage.getItem('gestao_selos_v9') || localDefault);
       data.pessoas.splice(i,1);
-      localStorage.setItem('gestao_selos_v8', JSON.stringify(data));
+      localStorage.setItem('gestao_selos_v9', JSON.stringify(data));
     }
   },
   async addEmail(email,tipo){
     if(useFirebase){ await db.collection('emails').add({email, tipo}); }
     else{
-      const data = JSON.parse(localStorage.getItem('gestao_selos_v8') || localDefault);
+      const data = JSON.parse(localStorage.getItem('gestao_selos_v9') || localDefault);
       (data.emails=data.emails||[]).push({email,tipo,id:Math.random().toString(36).slice(2)});
-      localStorage.setItem('gestao_selos_v8', JSON.stringify(data));
+      localStorage.setItem('gestao_selos_v9', JSON.stringify(data));
     }
   },
   async listEmails(){
-    return useFirebase ? (await this.list('emails')) : (JSON.parse(localStorage.getItem('gestao_selos_v8') || localDefault).emails||[]);
+    return useFirebase ? (await this.list('emails')) : (JSON.parse(localStorage.getItem('gestao_selos_v9') || localDefault).emails||[]);
   },
   async delEmailByIndex(i){
     if(useFirebase){
@@ -100,9 +96,9 @@ const backend = {
       const arr = snap.docs;
       if(arr[i]) await arr[i].ref.delete();
     }else{
-      const data = JSON.parse(localStorage.getItem('gestao_selos_v8') || localDefault);
+      const data = JSON.parse(localStorage.getItem('gestao_selos_v9') || localDefault);
       data.emails.splice(i,1);
-      localStorage.setItem('gestao_selos_v8', JSON.stringify(data));
+      localStorage.setItem('gestao_selos_v9', JSON.stringify(data));
     }
   }
 };
@@ -113,11 +109,19 @@ function clearSession(){ localStorage.removeItem('selos_session'); syncHeader();
 function syncHeader(){
   const s = getSession();
   if(s){
+    document.querySelectorAll('.tab-btn').forEach(b=> b.hidden=false);
     hello.textContent = `👋 Olá, ${s.nome} (${s.isDev? 'Dev' : s.isAdmin ? 'Admin' : 'Colaborador'})`;
     btnSair.hidden = false; btnDashboard.hidden = !(s.isAdmin||s.isDev);
     btnIndicadores.hidden = !(s.isAdmin||s.isDev); btnDev.hidden = !s.isDev; btnEmails.hidden = !s.isDev;
   }else{
+    // sem sessão: exibe só Login
     hello.textContent = '—'; btnSair.hidden=true; btnDashboard.hidden=true; btnIndicadores.hidden=true; btnDev.hidden=true; btnEmails.hidden=true;
+    document.querySelectorAll('.topnav .tab-btn').forEach(b=>{
+      const id = b.dataset.tab;
+      b.hidden = (id!=='login');
+      b.classList.toggle('active', id==='login');
+    });
+    showTab('login');
   }
 }
 btnSair.addEventListener('click', ()=>{ clearSession(); alert('Sessão encerrada.'); showTab('login'); });
@@ -126,8 +130,9 @@ function showTab(id){
   const s = getSession();
   if((id==='dashboard'||id==='indicadores') && !(s && (s.isAdmin||s.isDev))){ alert('Acesso restrito.'); id='login'; }
   if((id==='dev'||id==='emails') && !(s && s.isDev)){ alert('Acesso restrito ao Desenvolvedor.'); id='login'; }
-  tabs.forEach(t=>t.classList.toggle('active', t.id===id));
-  buttons.forEach(b=>b.classList.toggle('active', b.dataset.tab===id));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(b=> b.classList.toggle('active', b.dataset.tab===id));
   if(id==='bloqueio') renderBloqueios();
   if(id==='tratativa') renderTratativas();
   if(id==='finalizacao') renderFinalizacoes();
@@ -152,7 +157,7 @@ document.getElementById('form-login').addEventListener('submit', e=>{
   setSession({nome:(nome||'').trim()||'Usuário', isAdmin, isDev}); f.reset(); showTab('bloqueio');
 });
 
-// utilitários e renderizações (iguais às versões anteriores resumidos)
+// Utils
 function esc(s){return (s??'').toString().replace(/[&<>\"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[m]));}
 function fmtDate(d){ if(!d) return ''; try{return new Date(d+'T00:00:00').toLocaleDateString();}catch{return d;} }
 function badge(cls,txt){ return `<span class="badge ${cls}">${txt}</span>`; }
@@ -168,9 +173,10 @@ async function updatePessoasDatalist(){
 }
 
 document.getElementById('btnLimparDados').addEventListener('click', async ()=>{
-  if(confirm('Apagar dados locais (não afeta a nuvem)?')){ localStorage.removeItem('gestao_selos_v8'); alert('OK!'); }
+  if(confirm('Apagar dados locais (não afeta a nuvem)?')){ localStorage.removeItem('gestao_selos_v9'); alert('OK!'); }
 });
 
+// Form handlers
 document.getElementById('form-bloqueio').addEventListener('submit', async e=>{
   e.preventDefault();
   const f = e.target;
@@ -180,7 +186,6 @@ document.getElementById('form-bloqueio').addEventListener('submit', async e=>{
   if(obj.nome) await backend.addPessoa(obj.nome);
   f.reset(); await renderBloqueios(); alert('Bloqueio salvo!');
 });
-
 document.getElementById('form-tratativa').addEventListener('submit', async e=>{
   e.preventDefault();
   const f = e.target;
@@ -189,7 +194,6 @@ document.getElementById('form-tratativa').addEventListener('submit', async e=>{
   if(obj.nome) await backend.addPessoa(obj.nome);
   f.reset(); await renderTratativas(); alert('Tratativa salva!');
 });
-
 document.getElementById('form-finalizacao').addEventListener('submit', async e=>{
   e.preventDefault();
   const f = e.target;
@@ -199,6 +203,7 @@ document.getElementById('form-finalizacao').addEventListener('submit', async e=>
   f.reset(); await renderFinalizacoes(); alert('Finalização salva!');
 });
 
+// Export/Import
 document.getElementById('exportarJSON').addEventListener('click', async ()=>{
   const data = {
     bloqueios: await backend.list('bloqueios'),
@@ -228,11 +233,53 @@ document.getElementById('importarBtn').addEventListener('click', ()=>document.ge
 document.getElementById('importar').addEventListener('change', async (ev)=>{
   const file = ev.target.files?.[0]; if(!file) return; const text = await file.text();
   try{
-    let obj = file.name.toLowerCase().endswith('.json') if False else None
-  }catch(e){}
+    let obj = null;
+    if(file.name.toLowerCase().endsWith('.json')){
+      obj = JSON.parse(text);
+    }else{
+      // CSV (tabela,campos...)
+      const lines = text.split(/\\r?\\n/).filter(Boolean);
+      const head = lines.shift().split(',');
+      const rows = lines.map(l=>{
+        // split CSV simples (sem library)
+        const parts=[]; let cur='', inQ=false;
+        for(let i=0;i<l.length;i++){
+          const ch=l[i];
+          if(ch==='\"'){ inQ=!inQ; }
+          else if(ch===',' and not inQ){ parts.push(cur); cur='';}
+          else{ cur+=ch; }
+        }
+        parts.push(cur);
+        return parts;
+      });
+      const data = {'bloqueios':[], 'tratativas':[], 'finalizacoes':[]};
+      rows.forEach(r=>{
+        const t=r[0];
+        if(t==='bloqueio'){
+          data.bloqueios.push({nome:r[1],numero:Number(r[2]),area:r[3],promax:r[4],problema:r[5],qtd:Number(r[6]||0),dataBloqueio:r[7],vencimento:r[8],obs:r[9]});
+        }else if(t==='tratativa'){
+          data.tratativas.push({nome:r[1],numero:Number(r[2]),dataLiberacao:r[10],cor:r[11]});
+        }else if(t==='finalizacao'){
+          data.finalizacoes.push({nome:r[1],numero:Number(r[2]),dataFinalizacao:r[13],cor:r[14]});
+        }
+      });
+      obj = data;
+    }
+    const merges = ['bloqueios','tratativas','finalizacoes','pessoas','emails'];
+    for(const k of merges){
+      const arr = Array.isArray(obj[k]) ? obj[k] : [];
+      for(const it of arr){
+        if(k==='pessoas' && it) await backend.addPessoa(it);
+        else if(k==='emails' && it?.email) await backend.addEmail(it.email, it.tipo||'admin');
+        else if(k!=='pessoas' && k!=='emails') await backend.add(k, it);
+      }
+    }
+    alert('Importado!');
+    renderBloqueios(); renderTratativas(); renderFinalizacoes();
+  }catch(e){ alert('Falha ao importar: '+e.message); }
 });
-// NOTA: por brevidade o v8 inclui as principais telas; se precisar do import CSV/JSON completo como na v7, eu envio o módulo completo imediatamente.
 
+// Tabelas
 async function renderBloqueios(){
   await updatePessoasDatalist();
   const arr = await backend.list('bloqueios');
@@ -274,6 +321,7 @@ async function renderFinalizacoes(){
   tbody.querySelectorAll('[data-del]').forEach(btn=> btn.addEventListener('click', async ()=>{ if(confirm('Excluir?')){ await backend.del('finalizacoes', btn.dataset.del); renderFinalizacoes(); }}));
 }
 
+// Painel & Indicadores
 document.addEventListener('click', async (e)=>{
   if(e.target && e.target.id==='btnDelNumero'){
     const n = Number(document.getElementById('delNumero').value);
@@ -301,7 +349,6 @@ async function renderDashboard(){
   const mk = (t,v)=>{ const d=document.createElement('div'); d.className='card card-stat'; d.innerHTML=`<h4>${t}</h4><div class="big">${v}</div>`; return d; }
   cards.appendChild(mk('Selos Vermelhos', totalVermelhos)); cards.appendChild(mk('Liberados', liberados));
   cards.appendChild(mk('Impróprios (PNC)', improprios)); cards.appendChild(mk('Finalizados', finalizados)); cards.appendChild(mk('Sem Tratativa', semTratativa));
-
   const tbody = document.querySelector('#tabela-status tbody'); tbody.innerHTML='';
   Object.keys(porNumero).sort((a,b)=>Number(a)-Number(b)).forEach(n=>{
     const info = porNumero[n];
@@ -329,7 +376,7 @@ function periodKey(dateStr, gran){
 function isoWeek(d){ const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); const dayNum = tmp.getUTCDay()||7; tmp.setUTCDate(tmp.getUTCDate()+4-dayNum); const yearStart=new Date(Date.UTC(tmp.getUTCFullYear(),0,1)); return Math.ceil((((tmp-yearStart)/86400000)+1)/7); }
 function clearCanvas(id){ const c=document.getElementById(id); const ctx=c.getContext('2d'); ctx.clearRect(0,0,c.width,c.height); return {c,ctx}; }
 function drawBar(id, labels, values, title){ const {c,ctx}=clearCanvas(id); const pad=40,H=c.height,W=c.width; const max=Math.max(1,...values); const n=values.length; const bw=(W-pad*2)/Math.max(1,n); ctx.font='12px sans-serif'; ctx.fillStyle='#d6eef4'; ctx.fillText(title,pad,18); ctx.strokeStyle='#184a5f'; ctx.beginPath(); ctx.moveTo(pad,H-pad); ctx.lineTo(W-pad,H-pad); ctx.moveTo(pad,pad); ctx.lineTo(pad,H-pad); ctx.stroke(); ctx.fillStyle='#28c0d1'; values.forEach((v,i)=>{ const h=(H-pad*2)*(v/max); const x=pad+i*bw+4; const y=H-pad-h; ctx.fillRect(x,y,Math.max(8,bw-8),h);}); ctx.fillStyle='#9db7c3'; const step=Math.ceil(labels.length/12); labels.forEach((lb,i)=>{ if(i%step===0){ ctx.fillText(lb,pad+i*bw+4,H-pad+14); } }); }
-function drawLine(id, labels, s1, s2label){ const {c,ctx}=clearCanvas(id); const pad=40,H=c.height,W=c.width; const max=Math.max(1,...s1.flat()); ctx.strokeStyle='#184a5f'; ctx.beginPath(); ctx.moveTo(pad,H-pad); ctx.lineTo(W-pad,H-pad); ctx.moveTo(pad,pad); ctx.lineTo(pad,H-pad); ctx.stroke(); const colors=['#a9f5c6','#ffefad']; const n=labels.length; const stepX=(W-pad*2)/Math.max(1,n-1); s1.forEach((values,idx)=>{ ctx.strokeStyle=colors[idx%colors.length]; ctx.beginPath(); values.forEach((v,i)=>{ const x=pad+i*stepX; const y=H-pad-(H-pad*2)*(v/max); if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);}); ctx.stroke();}); ctx.fillStyle='#d6eef4'; ctx.font='12px sans-serif'; ctx.fillText(s2label.join(' vs '),pad,18); ctx.fillStyle='#9db7c3'; const labelStep=Math.ceil(labels.length/12); labels.forEach((lb,i)=>{ if(i%labelStep===0){ ctx.fillText(lb,pad+i*stepX-10,H-pad+14); } }); }
+function drawLine(id, labels, s1, s2label){ const {c,ctx}=clearCanvas(id); const pad=40,H=c.height,W=c.width; const max=Math.max(1,...s1.flat()); ctx.strokeStyle='#184a5f'; ctx.beginPath(); ctx.moveTo(pad,H-pad); ctx.lineTo(W-pad,H-pad); ctx.moveTo(pad,pad); ctx.lineTo(pad,H-pad); ctx.stroke(); const colors=['#a9f5c6','#ffefad']; const n=labels.length; const stepX=(W-pad*2)/Math.max(1,n-1); s1.forEach((values,idx)=>{ ctx.strokeStyle=colors[idx%colors.length]; ctx.beginPath(); values.forEach((v,i)=>{ const x=pad+i*stepX; const y=H-pad-(H-pad*2)*(v/max); if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);}); ctx.stroke();}); ctx.fillStyle='#d6eef4'; ctx.font='12px sans-serif'; ctx.fillText(s2label.join(' vs '),pad,18); ctx.fillStyle='#9db7c3'; const labelStep=Math.ceil(n/12); labels.forEach((lb,i)=>{ if(i%labelStep===0){ ctx.fillText(lb,pad+i*stepX-10,H-pad+14); } }); }
 
 async function renderIndicadores(){
   const s = getSession(); if(!(s && (s.isAdmin||s.isDev))) return;
@@ -350,7 +397,7 @@ async function renderIndicadores(){
   finalizacoes.forEach(f=>{ const k=periodKey(f.dataFinalizacao,gran); if(!k) return; sF[k]=(sF[k]||0)+1; });
   const keys = Array.from(new Set([...Object.keys(sT),...Object.keys(sF)])).sort();
   drawLine('chartEvolucao', keys, [keys.map(k=>sT[k]||0), keys.map(k=>sF[k]||0)], ['Tratativas','Finalizações']);
-  const probs={}; bloqueios.forEach(b=>{ const k=periodKey(b.dataBloqueio,gran); if(!k) return; probs[b.problema]=(probs[b.problema]||0)+1; });
+  const probs={}; bloqueios.forEach(b=>{ probs[b.problema]=(probs[b.problema]||0)+1; });
   const topProb = Object.entries(probs).sort((a,b)=>b[1]-a[1]).slice(0,10);
   drawBar('chartProblemas', topProb.map(x=>x[0]), topProb.map(x=>x[1]), 'Problemas');
   const tratados = new Set(tratativas.map(t=>String(t.numero))); const sem={};
